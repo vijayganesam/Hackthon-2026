@@ -29,6 +29,8 @@ const pegaViewConfig = {
   scriptSrc: import.meta.env.VITE_PEGA_SCRIPT_SRC as string,
   pegaServerUrl: import.meta.env.VITE_PEGA_SERVER_URL as string,
   appAlias: import.meta.env.VITE_PEGA_APP_ALIAS as string,
+  clientId: import.meta.env.VITE_PEGA_CLIENT_ID as string | undefined,
+  authService: (import.meta.env.VITE_PEGA_AUTH_SERVICE as string | undefined) || "pega",
 };
 
 function isPegaViewConfigured(): boolean {
@@ -85,6 +87,8 @@ function App() {
 
   const [pegaPhase, setPegaPhase] = useState<PegaPhase>("idle");
   const [caseId, setCaseId] = useState<string | null>(null);
+  // True once the assignment was submitted inside the Pega embed.
+  const [assignmentDone, setAssignmentDone] = useState(false);
   // Case status read back from Pega for the new case (pyStatusWork).
   const [caseStatus, setCaseStatus] = useState<string | null>(null);
   const [assignmentId, setAssignmentId] = useState<string | null>(null);
@@ -106,6 +110,7 @@ function App() {
     setPegaPhase("idle");
     setCaseId(null);
     setCaseStatus(null);
+    setAssignmentDone(false);
     setAssignmentId(null);
     setErrorMessage(null);
     recorder.reset();
@@ -228,6 +233,7 @@ function App() {
   const handleSubmitToPega = async () => {
     setCaseId(null);
     setCaseStatus(null);
+    setAssignmentDone(false);
     setAssignmentId(null);
     setPegaPhase("creating");
     setErrorMessage(null);
@@ -246,6 +252,8 @@ function App() {
   };
 
   const isRecording = recorder.status === "recording";
+  // Show the Pega assignment right after case creation, until it is submitted.
+  const showAssignment = Boolean(assignmentId) && isPegaViewConfigured() && !assignmentDone;
 
   return (
     <div className="app-shell">
@@ -288,6 +296,8 @@ function App() {
               </div>
             )}
 
+            {pegaPhase !== "submitted" && (
+            <>
             {/* Voice intake hero */}
             <div className="request-hero">
               <div className="request-eyebrow">Raise a request</div>
@@ -383,7 +393,7 @@ function App() {
             )}
 
             {/* Review card: identified issue/sub-type/details, editable before confirming */}
-            {hasExtracted && !isExtracting && pegaPhase !== "submitted" && (
+            {hasExtracted && !isExtracting && (
               <section className="section-card card review-card">
                 <div className="review-quote-label">
                   <span aria-hidden="true">🎙️</span> Your complaint
@@ -442,8 +452,44 @@ function App() {
               </section>
             )}
 
-            {/* Final confirmation, once the case exists in Pega */}
-            {pegaPhase === "submitted" && caseId && (
+            </>
+            )}
+
+            {/* Case exists in Pega: open its assignment so the data can be checked there */}
+            {pegaPhase === "submitted" && caseId && showAssignment && (
+              <section className="section-card card pega-section">
+                <div className="pega-assignment-head">
+                  <div>
+                    <div className="request-eyebrow">Case created in Pega</div>
+                    <h2 className="pega-assignment-title">{caseId}</h2>
+                    <p className="landing-sub">
+                      Customer ID {customer?.customerId}
+                      {caseStatus ? ` · Status ${caseStatus}` : ""}. Complete the request below.
+                    </p>
+                  </div>
+                  <div className="pega-assignment-actions">
+                    <button className="btn btn-outline" onClick={() => setAssignmentDone(true)}>
+                      Skip to summary
+                    </button>
+                  </div>
+                </div>
+                <div className="pega-assignment-view">
+                  <PegaAssignmentEmbed
+                    scriptSrc={pegaViewConfig.scriptSrc}
+                    pegaServerUrl={pegaViewConfig.pegaServerUrl}
+                    appAlias={pegaViewConfig.appAlias}
+                    assignmentID={assignmentId as string}
+                    clientId={pegaViewConfig.clientId}
+                    authService={pegaViewConfig.authService}
+                    onAssignmentSubmit={() => setAssignmentDone(true)}
+                    onScriptError={(message) => setErrorMessage(message)}
+                  />
+                </div>
+              </section>
+            )}
+
+            {/* Final confirmation: after the Pega assignment is submitted, or when it can't be shown */}
+            {pegaPhase === "submitted" && caseId && !showAssignment && (
               <section className="section-card card pega-section">
                 <div className="success-inline">
                   <div className="success-check">✓</div>
@@ -482,19 +528,6 @@ function App() {
                     Raise Another Request
                   </button>
                 </div>
-
-                {assignmentId && isPegaViewConfigured() && (
-                  <div className="pega-assignment-view">
-                    <div className="section-title">View your request in Pega</div>
-                    <PegaAssignmentEmbed
-                      scriptSrc={pegaViewConfig.scriptSrc}
-                      pegaServerUrl={pegaViewConfig.pegaServerUrl}
-                      appAlias={pegaViewConfig.appAlias}
-                      assignmentID={assignmentId}
-                      onScriptError={(message) => setErrorMessage(message)}
-                    />
-                  </div>
-                )}
               </section>
             )}
           </div>

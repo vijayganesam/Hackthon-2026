@@ -9,6 +9,9 @@ interface Props {
   pegaServerUrl: string;
   appAlias: string;
   assignmentID: string;
+  // Public OAuth client registered in Pega for the embed (not a secret).
+  clientId?: string;
+  authService?: string;
   casePage?: string;
   onReady?: (detail: unknown) => void;
   onAssignmentSubmit?: (detail: unknown) => void;
@@ -41,6 +44,8 @@ export function PegaAssignmentEmbed({
   pegaServerUrl,
   appAlias,
   assignmentID,
+  clientId,
+  authService = "pega",
   casePage = "assignment",
   onReady,
   onAssignmentSubmit,
@@ -63,7 +68,13 @@ export function PegaAssignmentEmbed({
         el.setAttribute("casePage", casePage);
         el.setAttribute("appAlias", appAlias);
         el.setAttribute("pegaServerUrl", pegaServerUrl);
-        el.setAttribute("grantType", "none");
+        if (clientId) {
+          el.setAttribute("clientId", clientId);
+          el.setAttribute("authService", authService);
+          el.setAttribute("autoReauth", "true");
+        } else {
+          el.setAttribute("grantType", "none");
+        }
         el.setAttribute("deferLoad", "true");
         el.style.width = "100%";
         el.style.minHeight = "520px";
@@ -85,7 +96,7 @@ export function PegaAssignmentEmbed({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assignmentID, pegaServerUrl, appAlias, scriptSrc]);
+  }, [assignmentID, pegaServerUrl, appAlias, scriptSrc, clientId, authService]);
 
   useEffect(() => {
     if (!elementReady || loadedRef.current) return;

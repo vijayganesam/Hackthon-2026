@@ -1525,3 +1525,18 @@ body {
   color: var(--success);
   background: var(--success-soft);
 }
+
+/* ---- Pega assignment shown right after case creation ---- */
+.pega-assignment-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.pega-assignment-title {
+  margin: 0.2rem 0 0.35rem;
+  font-size: 1.4rem;
+}
