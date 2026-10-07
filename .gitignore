@@ -1,0 +1,20 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+*.log
+.DS_Store
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+
+# Local data and tooling
+backend/data/
+*.db
+*.sqlite3
+backend/venv/
+logs/
+.claude/settings.local.json
+__pycache__/
+*.pyc
